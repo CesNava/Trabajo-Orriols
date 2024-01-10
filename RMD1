@@ -78,6 +78,25 @@ CrossTable(datos_clasebaja$RECUVOTOGR1, datos$clase_subjetiva, format = c("SPSS"
 
 EL PP TIENE MÁS VOTANTES QUE SE IDENTIFICAN COMO CLASE BAJA, PERO ENTRE AQUELLOS QUE SE IDENTIFICAN COMO CLASE BAJA Y A SU VEZ SE CONSIDERAN VOTANTES DE DERECHAS VOTAN MÁS A VOX QUE AL PP.
 
+
+##Tabla de fugas. 
+Vox ha perdido muchos apoyo en este 23J en favor del PP. Aquí miramos la situación de fugas actual en unas hipotéticas y aquí vemos si, a diciembre de 2023, se irían aún 
+```{r}
+datos <- datos |> 
+ mutate(INTENCIONGR1 = case_when(INTENCIONGR == 2 ~ "PP",
+                                INTENCIONGR == 1 ~ "PSOE",
+                                INTENCIONGR == 3 ~ "VOX",
+                                INTENCIONGR == 21 ~  "SUMAR",
+                                (INTENCIONGR >=8996 &
+                                  INTENCIONGR <= 9998) ~ "BAI",
+                                T ~ "OTRO"))
+
+tab_fugas<-table(datos$RECUVOTOGR1, datos$INTENCIONGR1)
+prop.table(tab_fugas, 1)
+tab_fugas_prop<- prop.table(tab_fugas, 1)
+knitr::kable(tab_fugas_prop, format = "markdown")
+```
+
 QUE PERFIL Y PROBLEMAS TIENE ESTE ELECTORADO ESPECÍFICO
 
 ```{r}
