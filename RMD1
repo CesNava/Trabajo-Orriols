@@ -1,3 +1,14 @@
+---
+title: "GRUPAL ORRIOLS"
+author: "Ruben Díaz"
+date: "2024-01-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 # VOX ESTRATEGIA ELECTORAL
 
 ##LIBRERÍAS
@@ -8,6 +19,7 @@ library(dplyr)
 library(forcats)
 library(ggplot2)
 library(tidyverse)
+library(gmodels)
 ```
 
 
@@ -25,12 +37,16 @@ CLASE SOCIAL SUBJETIVA
 datos$clase_subjetiva <- datos$CLASESUB
 
 datos <- datos |> 
- mutate(clase_subjetiva = case_when(clase_subjetiva == 1 | clase_subjetiva == 2 | clase_subjetiva == 3 ~ "alta",
-                                    clase_subjetiva > 3 & clase_subjetiva < 6 ~ "baja",
+ mutate(clase_subjetiva = case_when(clase_subjetiva == 1 ~ "alta",
+                                    clase_subjetiva == 2 ~ "media",
+                                    clase_subjetiva > 2 & clase_subjetiva < 6  ~ "baja",
                                     T ~ NA)) |>
  mutate(clase_subjetiva = factor(clase_subjetiva))
  
 summary(datos$clase_subjetiva)
+head(datos$CLASESUB)
+
+
 ```
 
 Cuanta gente que se autopercibe como clase baja vota a VOX??
@@ -42,21 +58,33 @@ datos <- datos |>
                                 RECUVOTOGR == 1 ~ "PSOE",
                                 RECUVOTOGR == 3 ~ "VOX",
                                 RECUVOTOGR == 21 ~  "SUMAR",
-                                T ~ "OTRO"))
+                                T ~ "OTRO")) |> 
+ mutate(RECUVOTOGR1 <- as.numeric(RECUVOTOGR1))
 
 datos_clasebaja <- datos |> 
  filter(clase_subjetiva == "baja")
 
 datos_clasebaja_derecha <-  datos_clasebaja |> 
- filter(ESCIDEOL > 5 & ESCIDEOL < 11)
+ filter(ESCIDEOL > 5 & ESCIDEOL < 11) 
 
-
+table(datos$RECUVOTOGR1)
 table(datos_clasebaja$RECUVOTOGR1)
 table(datos_clasebaja_derecha$RECUVOTOGR1)
 
 datos_clasebaja_derecha_vox <-  datos_clasebaja_derecha |> 
  filter(RECUVOTOGR1 == "VOX") |> 
  filter(PESPANNA1 < 900 & PESPANNA2 < 900 & PESPANNA3 < 900)
+
+prop.table(table(datos$RECUVOTOGR1))*100
+prop.table(table(datos_clasebaja$RECUVOTOGR1))*100
+prop.table(table(datos_clasebaja_derecha$RECUVOTOGR1))*100
+
+datos <- datos |> 
+ mutate(RECUVOTOGR2 = RECUVOTOGR1 )
+
+CrossTable(datos_clasebaja$RECUVOTOGR1, datos$clase_subjetiva, format = c("SPSS"), chisq = T)
+
+
 ```
 
 EL PP TIENE MÁS VOTANTES QUE SE IDENTIFICAN COMO CLASE BAJA, PERO ENTRE AQUELLOS QUE SE IDENTIFICAN COMO CLASE BAJA Y A SU VEZ SE CONSIDERAN VOTANTES DE DERECHAS VOTAN MÁS A VOX QUE AL PP.
@@ -67,33 +95,25 @@ QUE PERFIL Y PROBLEMAS TIENE ESTE ELECTORADO ESPECÍFICO
 ggplot(datos_clasebaja_derecha_vox, aes(x = PESPANNA1, fill = PESPANNA1)) +
   geom_bar(stat = "count") +  # Puedes usar stat = "count" para contar automáticamente las frecuencias
   theme_minimal()
+
+
+
 ```
 
 
 EN EL GRAFICO VEMOS COMO LOS TRES PRINCIPALES PROBLEMAS SON EL 13 51 Y 24: LOS TRES SON PROBLEMAS QUE JUZGAN A LOS POLÍTICOS POR LO TANTO ESTE ELECTORADO PARECE SER BASTANTE ANTISISTEMA Y BASTANTE CRÍTICO CON EL SISTEMA POLÍTICO ACTUAL Y CON LAS ELITES POLÍTICAS
 
-##Tabla de fugas. 
-Vox ha perdido muchos apoyo en este 23J en favor del PP. Aquí miramos la situación de fugas actual en unas hipotéticas y aquí vemos si, a diciembre de 2023, se irían aún 
-```{r}
-datos <- datos |> 
- mutate(INTENCIONGR1 = case_when(INTENCIONGR == 2 ~ "PP",
-                                INTENCIONGR == 1 ~ "PSOE",
-                                INTENCIONGR == 3 ~ "VOX",
-                                INTENCIONGR == 21 ~  "SUMAR",
-                                (INTENCIONGR >=8996 &
-                                  INTENCIONGR <= 9998) ~ "BAI",
-                                T ~ "OTRO"))
-
-tab_fugas<-table(datos$RECUVOTOGR1, datos$INTENCIONGR1)
-prop.table(tab_fugas, 1)
-tab_fugas_prop<- prop.table(tab_fugas, 1)
-knitr::kable(tab_fugas_prop, format = "markdown")
-```
-
-
-
-##Tabla para clase obrera. 
 
 ```{r}
-tabla<-CrossTable(ess9es$asistencia_rel, ess9es$inmigracion_pobres, digits=1, prop.t=F, prop.r = F, expected=F, asresid=TRUE, prop.chisq=F, chisq=TRUE, format=c("SPSS"))
+datos_clasebaja <- datos_clasebaja |> 
+ mutate(ideol = case_when(ESCIDEOL < 5 ~ "izq",
+                          ESCIDEOL == 5 ~ "centro",
+                          ESCIDEOL > 5 ~ "der",
+                          ESCIDEOL > 10 ~ NA))
+
+table(datos_clasebaja$ideol)
+
+CrossTable(datos_clasebaja$RECUVOTOGR1, datos_clasebaja$ideol, format = c("SPSS"), chisq = T)
+
+
 ```
