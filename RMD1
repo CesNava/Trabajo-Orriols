@@ -42,9 +42,7 @@ datos <- datos |>
  mutate(clase_subjetiva = factor(clase_subjetiva))
  
 summary(datos$clase_subjetiva)
-
 summary()
-
 ```
 
 Cuanta gente que se autopercibe como clase baja vota a VOX??
@@ -71,10 +69,6 @@ table(datos_clasebaja_derecha$RECUVOTOGR1)
 datos_clasebaja_derecha_vox <-  datos_clasebaja_derecha |> 
  filter(RECUVOTOGR1 == "VOX") |> 
  filter(PESPANNA1 < 900 & PESPANNA2 < 900 & PESPANNA3 < 900)
-
-
-
-
 ```
 
 EL PP TIENE MÁS VOTANTES QUE SE IDENTIFICAN COMO CLASE BAJA, PERO ENTRE AQUELLOS QUE SE IDENTIFICAN COMO CLASE BAJA Y A SU VEZ SE CONSIDERAN VOTANTES DE DERECHAS VOTAN MÁS A VOX QUE AL PP.
@@ -85,7 +79,6 @@ QUE PERFIL Y PROBLEMAS TIENE ESTE ELECTORADO ESPECÍFICO
 ggplot(datos_clasebaja_derecha_vox, aes(x = PESPANNA1, fill = PESPANNA1)) +
   geom_bar(stat = "count") +  # Puedes usar stat = "count" para contar automáticamente las frecuencias
   theme_minimal()
-
 ```
 
 
