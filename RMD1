@@ -1,14 +1,3 @@
----
-title: "GRUPAL ORRIOLS"
-author: "Ruben Díaz"
-date: "2024-01-07"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 # VOX ESTRATEGIA ELECTORAL
 
 ##LIBRERÍAS
