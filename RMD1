@@ -1,14 +1,3 @@
----
-title: "GRUPAL ORRIOLS"
-author: "Ruben Díaz"
-date: "2024-01-07"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 # VOX ESTRATEGIA ELECTORAL
 
 ##LIBRERÍAS
@@ -42,7 +31,6 @@ datos <- datos |>
  mutate(clase_subjetiva = factor(clase_subjetiva))
  
 summary(datos$clase_subjetiva)
-summary()
 ```
 
 Cuanta gente que se autopercibe como clase baja vota a VOX??
@@ -50,8 +38,8 @@ Cuanta gente que se autopercibe como clase baja vota a VOX??
 ```{r}
 datos <- datos |> 
  filter(RECUVOTOGR < 8000) |> 
- mutate(RECUVOTOGR1 = case_when(RECUVOTOGR == 1 ~ "PP",
-                                RECUVOTOGR == 2 ~ "PSOE",
+ mutate(RECUVOTOGR1 = case_when(RECUVOTOGR == 2 ~ "PP",
+                                RECUVOTOGR == 1 ~ "PSOE",
                                 RECUVOTOGR == 3 ~ "VOX",
                                 RECUVOTOGR == 21 ~  "SUMAR",
                                 T ~ "OTRO"))
