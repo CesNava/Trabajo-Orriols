@@ -71,3 +71,10 @@ ggplot(datos_clasebaja_derecha_vox, aes(x = PESPANNA1, fill = PESPANNA1)) +
 
 
 EN EL GRAFICO VEMOS COMO LOS TRES PRINCIPALES PROBLEMAS SON EL 13 51 Y 24: LOS TRES SON PROBLEMAS QUE JUZGAN A LOS POLÍTICOS POR LO TANTO ESTE ELECTORADO PARECE SER BASTANTE ANTISISTEMA Y BASTANTE CRÍTICO CON EL SISTEMA POLÍTICO ACTUAL Y CON LAS ELITES POLÍTICAS
+
+
+Tabla para clase obrera. 
+
+```{r}
+tabla<-CrossTable(ess9es$asistencia_rel, ess9es$inmigracion_pobres, digits=1, prop.t=F, prop.r = F, expected=F, asresid=TRUE, prop.chisq=F, chisq=TRUE, format=c("SPSS"))
+```
