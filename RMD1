@@ -72,8 +72,27 @@ ggplot(datos_clasebaja_derecha_vox, aes(x = PESPANNA1, fill = PESPANNA1)) +
 
 EN EL GRAFICO VEMOS COMO LOS TRES PRINCIPALES PROBLEMAS SON EL 13 51 Y 24: LOS TRES SON PROBLEMAS QUE JUZGAN A LOS POLÍTICOS POR LO TANTO ESTE ELECTORADO PARECE SER BASTANTE ANTISISTEMA Y BASTANTE CRÍTICO CON EL SISTEMA POLÍTICO ACTUAL Y CON LAS ELITES POLÍTICAS
 
+##Tabla de fugas. 
+Vox ha perdido muchos apoyo en este 23J en favor del PP. Aquí miramos la situación de fugas actual en unas hipotéticas y aquí vemos si, a diciembre de 2023, se irían aún 
+```{r}
+datos <- datos |> 
+ mutate(INTENCIONGR1 = case_when(INTENCIONGR == 2 ~ "PP",
+                                INTENCIONGR == 1 ~ "PSOE",
+                                INTENCIONGR == 3 ~ "VOX",
+                                INTENCIONGR == 21 ~  "SUMAR",
+                                (INTENCIONGR >=8996 &
+                                  INTENCIONGR <= 9998) ~ "BAI",
+                                T ~ "OTRO"))
 
-Tabla para clase obrera. 
+tab_fugas<-table(datos$RECUVOTOGR1, datos$INTENCIONGR1)
+prop.table(tab_fugas, 1)
+tab_fugas_prop<- prop.table(tab_fugas, 1)
+knitr::kable(tab_fugas_prop, format = "markdown")
+```
+
+
+
+##Tabla para clase obrera. 
 
 ```{r}
 tabla<-CrossTable(ess9es$asistencia_rel, ess9es$inmigracion_pobres, digits=1, prop.t=F, prop.r = F, expected=F, asresid=TRUE, prop.chisq=F, chisq=TRUE, format=c("SPSS"))
