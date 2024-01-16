@@ -1,0 +1,65 @@
+---
+title: "talleres_grupal"
+author: "Ruben Díaz"
+date: "2024-01-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# PROYECTO DE TALLERES GRUPAL
+
+El siguiente código es un archivo RMD sobre el proyecto de estudio de regresión lineal mediante el uso de la las librerías expuestas y explicadas en clase: tidyverse, dplyr, tidyr, forcats, etc.
+
+### Librerías
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(forcats)
+library(haven)
+```
+
+### Descarga de datos QoG
+
+```{r}
+qog_datos <- read_dta("qog_std_cs_jan23_stata14.dta")
+```
+
+
+### Especificación de la variabe dependiente: índice de globalización (continua numérica)
+
+```{r}
+
+qog_datos <- qog_datos |>
+ rename(glob_index = dr_ig) |>  #recodificamos con la función rename de dplyr
+ filter(glob_index != "NA") #eliminamos valores perdidos con la función filter de dplyr
+
+summary(qog_datos$glob_index) #visualizamos si la variable esta correctamente especificada
+
+```
+
+### Especificamos las variables explicativas
+
+CULTURAL DIVERSITY (continua numérica)
+
+```{r}
+qog_datos <- qog_datos |> 
+ rename(cult_div = fe_cultdiv) |> #recodificamos con la función rename de dplyr
+ filter(cult_div != "NA") #eliminamos valores perdidos con la función filter de dplyr
+ 
+summary(qog_datos$cult_div) #visualizamos si la variable esta correctamente especificada
+```
+
+### MODELO DE REGRESIÓN 1 (REG SIMPLE)
+
+Hacemos una regresión simple para ver la relación y el impacto de la diversidad cultural sobre cuan globalizado está un país
+
+```{r}
+model.1 <- lm(glob_index ~ cult_div, data = qog_datos)
+
+summary(model.1)
+```
+
