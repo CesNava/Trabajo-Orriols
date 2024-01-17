@@ -1,0 +1,266 @@
+---
+title: "P FINAL QOG"
+author: " Rubén Díaz y Jorge de Diego"
+date: "2024-01-16"
+output: 
+  html_document:
+    theme: cerulean
+    toc: yes
+---
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# PROYECTO DE TALLERES GRUPAL
+
+El siguiente código es un archivo RMD sobre el proyecto de estudio de regresión lineal mediante el uso de la las librerías expuestas y explicadas en clase: tidyverse, dplyr, tidyr, forcats, etc.
+
+### Librerías
+
+```{r}
+library(pacman)
+p_load(tidyverse, dplyr, forcats, haven, stargazer, readxl, tidyr, car)
+```
+
+### Descarga de datos QoG
+
+```{r}
+df <- read_dta("qog_std_cs_jan23_stata14.dta") #Usando la Cross-Section
+```
+
+
+### Especificación de la variabe dependiente: índice de globalización (continua numérica)
+
+
+```{r}
+df <- df |>
+ rename(glob_index = dr_ig) |> #recodificamos con la función rename de dplyr
+ filter(glob_index != "NA") #eliminamos valores perdidos con la función filter de dplyr
+
+summary(df$glob_index) #visualizamos si la variable esta correctamente especificada
+
+```
+
+### Especificamos las variables explicativas
+
+CULTURAL DIVERSITY (continua numérica)
+
+```{r}
+df <- df |> 
+ rename(cult_div = fe_cultdiv) |> #recodificamos con la función rename de dplyr
+ filter(cult_div != "NA") #eliminamos valores perdidos con la función filter de dplyr
+ 
+summary(df$cult_div) #visualizamos si la variable está correctamente especificada
+```
+
+### MODELO DE REGRESIÓN 1 (REG SIMPLE)
+
+Hacemos una regresión simple para ver la relación y el impacto de la diversidad cultural sobre cuan globalizado está un país
+
+```{r}
+model.1 <- lm(glob_index ~ cult_div, data = df)
+
+summary(model.1)
+```
+
+### Especificamos nuevas variables explicativas
+
+ÍNDICE DE GINI (continua numérica)
+
+```{r}
+df <- df |> 
+ rename(cgini = wdi_gini) |> 
+  filter(cgini != "NA")
+```
+
+```{r}
+summary(df$cgini)
+```
+
+```{r}
+# df <- df |> rename(der_mujer = ciri_wecon) |> 
+   # filter(der_mujer != "NA")
+```
+
+ESTABILIDAD POLÍTICA: variable continua que vamos a dicotomizar para determinar 2 categorias: estabilidad / inestabilidad
+
+```{r}
+ df <- df |> 
+ rename(estabilidad = wbgi_pve) |> 
+ mutate(estabilidad = 
+         case_when(estabilidad >=0 ~ "Estable",
+                   estabilidad < 0 ~ "Inestable",
+                   estabilidad == "NA" ~ NA)) |>
+ mutate(estabilidad = factor(estabilidad))
+ 
+table(df$estabilidad)
+
+```
+
+PIB PER CAPITA (continua numérica)
+
+```{r}
+df <- df |> 
+ rename(gdpxcap = wdi_gdpcapcur)
+
+summary(df$gdpxcap)
+
+```
+
+IDH (Categorizamos una variable continua numérica en 2 tramos: alto, bajo)
+
+```{r}
+df <- df |> 
+ rename(idh = undp_hdi) |> 
+ mutate(idh = case_when(idh < 0.78 ~ "bajo",
+                        idh >= 0.78 ~ "alto"))
+
+table(df$idh)
+```
+
+Variable dicotómica: categorización como regímen democrático o no democrático.
+
+```{r}
+df <- df |> 
+  rename(demo = bmr_dem) |> 
+  mutate(demo = case_when(
+    demo == 0 ~ "No democrático",
+    demo == 1 ~ "Democrático"
+  ))
+```
+
+Derechos políticos: variable discreta de 1 (más libre) a 7 (menos libre)
+
+```{r}
+df <- df |> 
+  mutate(derechos = abs(fh_pr-8) #Invertimos el orden, para que un mayor número implique más derechos
+  )
+```
+
+```{r}
+summary(df$derechos)
+```
+
+Forma de Estado: variable categórica
+
+## MODELO 2 (MODELO DE REGRESIÓN MULTIVARIANTE)
+
+```{r}
+model.2a <- lm(glob_index ~ cult_div + cgini + estabilidad + gdpxcap + idh, data = df)
+
+summary(model.2a)
+
+```
+
+
+## Incluimos nueva base de datos del World Bank para inlcuir nuevas variables al dataset
+
+```{r}
+df_worldbank <- read_xlsx("df_worldbank.xlsx") # lectura de datos con la libreria readxl
+```
+
+```{r}
+df_logistics <- read_xlsx("df_logistics.xlsx")
+```
+
+Efectuamos la unión de dataframes
+
+```{r}
+df_merged <- right_join(df, df_worldbank, by = "cname") #usamos right_join de dplyr para añadir el nuevo df al df original
+```
+
+```{r}
+df_merged <- right_join(df, df_logistics, by = "cname")
+```
+
+Queremos añadir la variable comercio como % del PIB del nuevo dataframe a nuestro modelo, la especificamos previamente
+
+```{r}
+df_merged <- df_merged |> 
+ rename(trade_gdp_percent = `trade % gdp`) |> 
+ mutate(trade_gdp_percent = as.numeric(trade_gdp_percent))
+```
+Variable añadida: Calidad de la logística del país, donde 1 es la más baja y 5 la más alta.
+```{r}
+df_merged <- df_merged |> 
+ mutate(logistics_quality = as.numeric(logistics_quality))
+```
+
+Reestimamos el modelo 2
+
+```{r}
+model.2b <- lm(glob_index ~ cult_div + cgini + estabilidad + gdpxcap + idh + trade_gdp_percent, data = df_merged)
+
+summary(model.2b)
+```
+LIMPIAMOS NA´S 
+
+```{r}
+myvars <- c("glob_index", "cult_div", "estabilidad", "demo", "derechos", "cgini", "idh", "logistics_quality", "trade_gdp_percent")  
+df_models<-df_merged[myvars]
+df_models<- na.omit(df_models)
+```
+
+
+```{r}
+model.1.1 <- lm(glob_index ~ cult_div + estabilidad + demo + derechos, data = df_models) #MODELOS ALTERNATIVOS
+model.2.1 <- lm(glob_index ~ cult_div + estabilidad + demo + derechos + cgini + idh + logistics_quality + trade_gdp_percent , data = df_models)
+```
+
+## MODELO 3
+
+Vamos a realizar un full-model
+
+```{r}
+model.3 <- lm(glob_index ~ gdpxcap * idh, data = df)
+
+summary(model.3)
+```
+
+```{r}
+stargazer(model.1.1, model.2.1,
+          type = "text",
+          style = "aer",
+          title = "Modelos",
+          column.labels = c("Modelo 1a", "Modelo 2b"))
+```
+Comprobamos la multicolinealidad
+
+```{r}
+VIF_Modelo1 <- vif(model.1.1)
+print(VIF_Modelo1)
+```
+```{r}
+VIF_Modelo2 <- vif(model.2.1)
+print(VIF_Modelo2)
+```
+
+```{r}
+p_load(gvlma)
+Salud_Modelo2 <- gvlma(model.2.1)
+summary(Salud_Modelo2)
+```
+
+
+## FORMATO DE DATOS
+
+Cambiamos el formato de datos
+
+```{r}
+df_long <- df_merged |> 
+  mutate(idh = as.character(idh),
+         glob_index = as.character(estabilidad)) |> 
+  pivot_longer(
+    cols = c(idh, estabilidad),
+    names_to = "variables",
+    values_to = "valor"
+  )
+ 
+```
+
