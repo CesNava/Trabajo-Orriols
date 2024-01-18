@@ -2,8 +2,15 @@
 title: "P FINAL QOG"
 author: " Rubén Díaz y Jorge de Diego"
 date: "2024-01-16"
-output: html_document
+output: 
+  html_document:
+    theme: cerulean
+    toc: yes
 ---
+<style>
+body {
+text-align: justify}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -14,91 +21,93 @@ knitr::opts_chunk$set(echo = TRUE)
 
 El siguiente código es un archivo RMD sobre el proyecto de estudio de regresión lineal mediante el uso de la las librerías expuestas y explicadas en clase: tidyverse, dplyr, tidyr, forcats, etc.
 
-### Librerías
+## Librerías
 
 ```{r}
 library(pacman)
-library(readxl)
-p_load(tidyverse, dplyr, forcats, haven)
-library(tidyr)
+p_load(tidyverse, dplyr, forcats, haven, stargazer, readxl, tidyr, car)
 ```
 
-### Descarga de datos QoG
+## Descarga de datos QoG
 
 ```{r}
-df <- read_dta("qog_std_cs_jan23_stata14.dta") #Usando la Cross-Section
+df <- read_dta("qog_std_cs_jan23_stata14.dta") #Usando la Cross-Section del QoG
 ```
 
 
-### Especificación de la variabe dependiente: índice de globalización (continua numérica)
+## Especificación de variables.
 
+### Variable dependiente: índice de globalización (continua numérica)
 
 ```{r}
 df <- df |>
- rename(glob_index = dr_ig) |> #recodificamos con la función rename de dplyr
- filter(glob_index != "NA") #eliminamos valores perdidos con la función filter de dplyr
+ rename(glob_index = dr_ig)#Recodificamos con la función rename de dplyr
 
-summary(df$glob_index) #visualizamos si la variable esta correctamente especificada
+summary(df$glob_index) #Visualizamos si la variable está correctamente especificada
 
+#Podríamos eliminar los casos perdidos ahora, pero se hará posteriormente de forma más óptima.
 ```
 
-### Especificamos las variables explicativas
+### Variables independientes
 
-CULTURAL DIVERSITY (continua numérica)
+#### Variables sociodemográficas (vinculadas al Modelo 1 y 2)
+
+**DIVERSIDAD CULTURAL**: variable continua. A mayor número, más fragmentación cultural detectada en un país.
 
 ```{r}
 df <- df |> 
- rename(cult_div = fe_cultdiv) |> #recodificamos con la función rename de dplyr
- filter(cult_div != "NA") #eliminamos valores perdidos con la función filter de dplyr
- 
-summary(df$cult_div) #visualizamos si la variable esta correctamente especificada
+ rename(cult_div = fe_cultdiv) #Repetimos el proceso
+
+summary(df$cult_div) #Visualizamos.
 ```
 
-### MODELO DE REGRESIÓN 1 (REG SIMPLE)
-
-Hacemos una regresión simple para ver la relación y el impacto de la diversidad cultural sobre cuan globalizado está un país
-
-```{r}
-model.1 <- lm(glob_index ~ cult_div, data = df)
-
-summary(model.1)
-```
-
-### Especificamos nuevas variables explicativas
-
-ÍNDICE DE GINI (continua numérica)
-
-```{r}
-df <- df |> 
- rename(cgini = wdi_gini) |> 
-  filter(cgini != "NA")
-```
-
-```{r}
-summary(df$cgini)
-```
-
-```{r}
-# df <- df |> rename(der_mujer = ciri_wecon) |> 
-   # filter(der_mujer != "NA")
-```
-
-ESTABILIDAD POLÍTICA: variable continua que vamos a dicotomizar para determinar 2 categorias: estabilidad / inestabilidad
+**ESTABILIDAD POLÍTICA**: variable continua que vamos a dicotomizar para determinar 2 categorias: estabilidad / inestabilidad
 
 ```{r}
  df <- df |> 
  rename(estabilidad = wbgi_pve) |> 
- mutate(estabilidad = 
-         case_when(estabilidad >=0 ~ "estable",
-                   estabilidad < 0 ~ "inestable",
+ mutate(estabilidad = #Con mutate cambiamos los valores de nuestra variable
+         case_when(estabilidad >=0 ~ "Estable", #Donde valores positivos implican una política estable
+                   estabilidad < 0 ~ "Inestable", #Y valores negativos lo contrario: inestabilidad. 
                    estabilidad == "NA" ~ NA)) |>
  mutate(estabilidad = factor(estabilidad))
  
-table(df$estabilidad)
+table(df$estabilidad) #Visualizamos, esta vez con table(), que se ha ajustado bien la variable.
 
 ```
 
-PIB PER CAPITA (continua numérica)
+**REGÍMEN DEMOCRÁTICO**: variable dicotómica categorización como regímen democrático o no democrático.
+
+```{r}
+df <- df |> 
+  rename(demo = bmr_dem) |> 
+  mutate(demo = case_when(
+    demo == 0 ~ "No democrático",
+    demo == 1 ~ "Democrático"
+  ))
+```
+
+**DERECHOS POLÍTICOS**: variable discreta de 1 (más libre) a 7 (menos libre)
+
+```{r}
+df <- df |> 
+  mutate(derechos = abs(fh_pr-8) #Invertimos el orden (restando 8 y calculando en valores absolutos), para que un mayor número implique más derechos y el análisis posterior sea más sencillo
+  )
+
+summary(df$derechos)
+```
+
+#### Variables económicas (Vinculadas al Modelo 3)
+
+**ÍNDICE DE GINI**: variable continua, sirve como indicador de desigualdad.
+
+```{r}
+df <- df |> 
+ rename(cgini = wdi_gini)
+  summary(df$cgini)
+```
+
+**PIB PER CAPITA**: variable continua.
 
 ```{r}
 df <- df |> 
@@ -108,78 +117,174 @@ summary(df$gdpxcap)
 
 ```
 
-IDH (Categorizamos una variable continua numérica en 2 tramos: alto, bajo)
+**IDH**: variable continua que categorizamos en 2 tramos: alto, bajo.
 
 ```{r}
+summary(df$undp_hdi) #Siendo 0,74 la mediana para esta variable, podemos dividir en dos a los países
 df <- df |> 
  rename(idh = undp_hdi) |> 
- mutate(idh = case_when(idh < 0.78 ~ "bajo",
-                        idh >= 0.78 ~ "alto"))
+ mutate(idh = case_when(idh < 0.74 ~ "Bajo", #Los valores inferiores a esta media se consideran IDH Bajo
+                        idh >= 0.74 ~ "Alto")) #Y por encima, IDH alto.
 
 table(df$idh)
 ```
 
-## MODELO 2 (MODELO DE REGRESIÓN MULTIVARIANTE)
+
+##### Inclusión de una nueva base de datos con 2 variables económicas extraídas del banco de datos del Banco Mundial
 
 ```{r}
-model.2a <- lm(glob_index ~ cult_div + cgini + estabilidad + gdpxcap + idh, data = df)
-
-summary(model.2a)
-
+df_logistics <- read_xlsx("df_logistics.xlsx") #Cargamos nuestro EXCEL.
 ```
 
-
-## Incluimos nueva base de datos del World Bank para inlcuir nuevas variables al dataset
+Efectuamos la unión de los dataframes en uno nuevo. 
 
 ```{r}
-df_worldbank <- read_xlsx("df_worldbank.xlsx") # lectura de datos con la libreria readxl
+df_merged <- right_join(df, df_logistics, by = "ccodealp") #Usamos el código del país como referencia para la unión de los datos, pues los nombre de algunos países usando "cnames" es distinto en la QoG y en los datos del Banco Mundial.
 ```
 
-Efectuamos la unión de dataframes
-
-```{r}
-df_merged <- right_join(df, df_worldbank, by = "cname") #usamos right_join de dplyr para añadir el nuevo df al df original
-```
-
-Queremos añadir la variable comercio como % del PIB del nuevo dataframe a nuestro modelo, la especificamos previamente
+**% DEL PIB QUE CORRESPONDE AL COMERCIO**: Para incluirla la especificamos previamente
 
 ```{r}
 df_merged <- df_merged |> 
- rename(trade_gdp_percent =`trade % GDP`) |> 
- mutate(trade_gdp_percent = as.numeric(trade_gdp_percent))
+ rename(trade_gdp_percent = `trade % gdp`) |> 
+ mutate(trade_gdp_percent = as.numeric(trade_gdp_percent)) #Se transforma en variable numérica.
 ```
-
-Reestimamos el modelo 2
+**CALIDAD LOGÍSTICA DEL PAÍS**: variable continua donde 1 es la calidad logística más baja y 5 la más alta.
 
 ```{r}
-model.2b <- lm(glob_index ~ cult_div + cgini + estabilidad + gdpxcap + idh + trade_gdp_percent, data = df_merged)
+df_merged <- df_merged |> 
+ mutate(logistics_quality = as.numeric(logistics_quality)) #Se transforma en variable numérica.
 
-summary(model.2b)
 ```
 
-## MODELO 3 (INTERACCIONES)
+#### Limpiamos Casos Perdidos.
 
-Al ver que el GDP y nivel de IDH son las variables mayormente significativas realizamos un modelo para interaccionarlas
+Una vez hemos especificado todas las variables con las que vamos a trabajar, es momento de eliminar aquellos objetos que no presentan datos en alguna de estas variables.
+Esto se justifica porque, de lo contrario, los modelos planteados tendrían un número distinto de casos y no serían, por tanto, comparables entre sí.
 
 ```{r}
-model.3 <- lm(glob_index ~ gdpxcap * idh, data = df)
-
-summary(model.3)
+myvars <- c("glob_index", "cult_div", "estabilidad", "demo", "derechos", "cgini", "idh", "logistics_quality", "trade_gdp_percent")  
+df_models<-df_merged[myvars]
+df_models<- na.omit(df_models)
 ```
 
-## FORMATO DE DATOS
-
-Cambiamos el formato de datos
+## Estimación de los Modelos.
+### Modelo 1 (Regresión simple)
+Hacemos una regresión simple para ver la relación y el impacto de la diversidad cultural sobre cuan globalizado está un país.
 
 ```{r}
-df_long <- df_merged |> 
-  mutate(idh = as.character(idh),
-         glob_index = as.character(estabilidad)) |> 
-  pivot_longer(
-    cols = c(idh, estabilidad),
-    names_to = "variables",
-    values_to = "valor"
-  )
+modelo1 <- lm(glob_index ~ cult_div, data = df_models) #Creamos el Modelo 1 donde establecemos una regresión lineal con el índice de globalización como variable dependiente y la fragmentación cultural como variable dependiente.
+
+summary(modelo1) #Visualizamos: podemos rechazar H0 y aceptar que hay una relación significativa (con un nivel de confianza del 99.9%) y negativa.
+```
+
+### Modelo 2 (Regresión multivariante con variables sociodemográficas)
+```{r}
+modelo2 <- lm(glob_index ~ cult_div + estabilidad + demo + derechos, data = df_models) #No visualizamos los modelos porque se hará posteriormente de forma conjunta; optimizamos espacio y facilitamos la lectura.
+```
+
+### Modelo 3 (Regresión multivariante con variables sociodem. y económicas)
+
+```{r}
+modelo3 <- lm(glob_index ~ cult_div + estabilidad + demo + derechos + cgini + idh + logistics_quality + trade_gdp_percent , data = df_models)
+```
+
+### Modelo 4 (Interacción)
+```{r}
+modelo4 <- lm(glob_index ~ trade_gdp_percent * idh, data = df_models)
+
+```
+
+```{r}
+stargazer(modelo1, modelo2, modelo3, modelo4,
+          type = "text",
+          style = "apsr",
+          column.labels = c("Modelo 1", "Modelo 2", "Modelo 3", "Modelo 4"),
+          dep.var.labels = c("Índice de globalización de KOF"),
+          covariate.labels = c("Diversidad cultural", "Estabilidad política: Inestable", "Existencia de democracia: No.", "Derechos políticos", "Coef. Gini", "IDH: Bajo", "Calidad de la logística", "% PIB Comercio * IDH Bajo", "% PIB Comercio", "Constante"))
+```
+###Comprobación de la calidad de los modelos
+
+Comprobamos la multicolinealidad
+
+```{r}
+VIF_Modelo2 <- vif(modelo2) #Para el Modelo 1 no es necesario calcular estos valores (solo hay 1 variable explicativa)
+print(VIF_Modelo2)  #Visualizamos: valores menores de 5 no deberían preocuparnos.
+```
+
+```{r}
+VIF_Modelo3 <- vif(modelo3) #La variable derechos políticos daría algunos pequeños problemas de colinealidad.
+print(VIF_Modelo3)
+```
+
+```{r}
+VIF_Modelo4 <- vif(modelo4)
+print(VIF_Modelo4)
+```
+
+```{r}
+p_load(gvlma)  #Añadimos librería para comprobar el modelo.
+modelo2_hipo <- gvlma(modelo2)
+summary(modelo2_hipo)
+```
+```{r}
+modelo3_hipo <- gvlma(modelo3)
+summary(modelo3_hipo)
+```
+
+
+## FORMATO DE DATOS: AÑADIMOS LA BASE DE DATOS CON SERIES TEMPORALES PARA PONER LOS DATOS ANUALIZADOS
+
+cargamos datos
+
+```{r}
+df_ts <- read_dta("qog_std_ts_jan23_stata14.dta")
  
+```
+
+Modificamos la base de datos quedándonos sólo los valores que queremos (glob_index y cname)
+
+```{r}
+df_ts <- df_ts |> 
+ rename(glob_index = dr_ig) |> 
+ select(cname, year, glob_index, ) |> 
+ filter(glob_index != "NA")
+ 
+head(df_ts)
+```
+
+Cambiamos el fromato de los datos de largo a ancho con pivot_wider de la librería "tidyr"
+
+```{r}
+library(tidyr)
+df_ts <- df_ts |> 
+ pivot_wider(names_from = year, values_from = glob_index) # pasamos a país como unidad de observación
+
+filter(df_ts, cname == "Spain" | cname == "France") # visualizamos los datos en formato correcto para españa y francia
+```
+
+
+## Tabla de descriptivos
+
+Sacamos una tabla de descriptivos de todas las variables para el trabajo, usaremos summary y despues visualizaremos los datos de los coeficientes de nuestro modelo más amplio (modelo 3)
+
+```{r}
+# instalamos el paquete knitr para hacer una tabla estética
+library(knitr)
+
+df_models <- df_models |> 
+ mutate(estabilidad = as.numeric(estabilidad)) |> 
+ mutate(demo = as.numeric(demo)) |> 
+ mutate(idh = as.numeric(idh))
+
+descriptivos_table <- sapply(df_models, function(x) c(Mínimo = min(x), Máximo = max(x), Media = mean(x), Mediana = median(x), SD = sd(x)))
+
+descriptivos_table <- t(descriptivos_table)
+
+descriptives_table1 <- kable(descriptivos_table, format = "html", digits = 3)
+
+descriptives_table1
+
+
 ```
 
